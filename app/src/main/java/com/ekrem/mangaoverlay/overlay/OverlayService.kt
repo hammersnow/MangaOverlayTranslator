@@ -1,8 +1,6 @@
 package com.ekrem.mangaoverlay.overlay
 import android.app.*; import android.content.*; import android.graphics.*; import android.hardware.display.*; import android.media.*; import android.media.projection.*; import android.os.*; import android.view.*; import android.widget.*
-import com.ekrem.mangaoverlay.R
 import kotlinx.coroutines.*
-
 class OverlayService : Service() {
   companion object { const val EXTRA_RESULT_CODE = "result_code"; const val EXTRA_RESULT_DATA = "result_data" }
 
@@ -16,15 +14,10 @@ class OverlayService : Service() {
 
   private var projThread: HandlerThread? = null
   private var projHandler: Handler? = null
-  private val projCallback = object : MediaProjection.Callback() {
-    override fun onStop() {
-      // Sistem capture'ı durdurursa kaynakları bırak
-      releaseCapture()
-    }
-  }
+  private val projCallback = object : MediaProjection.Callback() { override fun onStop() { releaseCapture() } }
 
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-  override fun onBind(intent: Intent?): IBinder? = null
+  override fun onBind(intent: Intent?) = null
 
   override fun onCreate() {
     super.onCreate()
@@ -63,38 +56,45 @@ class OverlayService : Service() {
     val lp = WindowManager.LayoutParams(
       WindowManager.LayoutParams.WRAP_CONTENT,
       WindowManager.LayoutParams.WRAP_CONTENT,
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY else WindowManager.LayoutParams.TYPE_PHONE,
-      WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+        WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY else WindowManager.LayoutParams.TYPE_PHONE,
+      WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+          WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+          WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
       PixelFormat.TRANSLUCENT
     )
-    lp.gravity = Gravity.TOP or Gravity.START; lp.x = 60; lp.y = 140
+    lp.gravity = Gravity.TOP or Gravity.START
+    lp.x = 60; lp.y = 200   // başlangıçta biraz daha aşağıda
 
-    overlayView = LayoutInflater.from(this).inflate(R.layout.overlay_panel, null)
-    txtOutput = overlayView!!.findViewById(R.id.txtOutput)
-    val touchHelper = DraggableResizableTouchHelper(windowManager, overlayView!!, lp)
-    overlayView!!.setOnTouchListener(touchHelper)
-    overlayView!!.findViewById<ImageButton>(R.id.btnClose).setOnClickListener { stopSelf() }
+    overlayView = LayoutInflater.from(this).inflate(
+      resources.getIdentifier("overlay_panel", "layout", packageName),
+      null
+    )
+    txtOutput = overlayView!!.findViewById(
+      resources.getIdentifier("txtOutput", "id", packageName)
+    )
+    val helper = DraggableResizableTouchHelper(windowManager, overlayView!!, lp)
+    overlayView!!.setOnTouchListener(helper)
+    overlayView!!.findViewById<ImageButton>(
+      resources.getIdentifier("btnClose", "id", packageName)
+    ).setOnClickListener { stopSelf() }
+
     windowManager.addView(overlayView, lp)
   }
 
   private fun startProjection(intent: Intent?) {
     val code = intent?.getIntExtra(EXTRA_RESULT_CODE, -1) ?: -1
     val data = intent?.getParcelableExtra<Intent>(EXTRA_RESULT_DATA) ?: return
-
     val mpm = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
     projection = mpm.getMediaProjection(code, data) ?: return
 
-    // ---- Android 14+ gereği: önce callback kaydet, sonra capture başlat ----
-    if (projThread == null) {
-      projThread = HandlerThread("projection-cb").also { it.start() }
-      projHandler = Handler(projThread!!.looper)
-    }
+    if (projThread == null) { projThread = HandlerThread("projection-cb").also { it.start() }; projHandler = Handler(projThread!!.looper) }
     projection!!.registerCallback(projCallback, projHandler)
 
-    val metrics = resources.displayMetrics
-    val width = metrics.widthPixels
-    val height = metrics.heightPixels
-    val density = metrics.densityDpi
+    val dm = resources.displayMetrics
+    val width = dm.widthPixels
+    val height = dm.heightPixels
+    val density = dm.densityDpi
 
     imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
     vDisplay = projection!!.createVirtualDisplay(
@@ -107,7 +107,7 @@ class OverlayService : Service() {
       val ocr = com.ekrem.mangaoverlay.ocr.OcrTranslator(this@OverlayService)
       var lastHash = 0L
       while (isActive) {
-        val bmp = takeFrame()
+        val bmp = takeFrameCropped()  // kırpılmış kare
         if (bmp != null) {
           val h = quickHash(bmp)
           if (h != lastHash) {
@@ -121,32 +121,44 @@ class OverlayService : Service() {
           }
           bmp.recycle()
         }
-        delay(700)
+        delay(650)
       }
     }
   }
 
   private fun releaseCapture() {
-    try { vDisplay?.release() } catch (_: Throwable) { }
-    try { imageReader?.close() } catch (_: Throwable) { }
-    try { projection?.unregisterCallback(projCallback) } catch (_: Throwable) { }
-    try { projection?.stop() } catch (_: Throwable) { }
+    runCatching { vDisplay?.release() }
+    runCatching { imageReader?.close() }
+    runCatching { projection?.unregisterCallback(projCallback) }
+    runCatching { projection?.stop() }
     vDisplay = null; imageReader = null; projection = null
     projThread?.quitSafely(); projThread = null; projHandler = null
   }
 
-  private fun takeFrame(): Bitmap? {
+  // --- Üst sistem çubuklarını kırparak bitmap üret ---
+  private fun takeFrameCropped(): Bitmap? {
     val img = imageReader?.acquireLatestImage() ?: return null
     val plane = img.planes[0]
     val buffer = plane.buffer
     val rowStride = plane.rowStride
     val pixelStride = plane.pixelStride
-    val width = img.width
-    val height = img.height
-    val bmp = Bitmap.createBitmap(rowStride / pixelStride, height, Bitmap.Config.ARGB_8888)
-    bmp.copyPixelsFromBuffer(buffer)
+    val fullW = img.width
+    val fullH = img.height
+
+    val tmp = Bitmap.createBitmap(rowStride / pixelStride, fullH, Bitmap.Config.ARGB_8888)
+    tmp.copyPixelsFromBuffer(buffer)
     img.close()
-    return Bitmap.createBitmap(bmp, 0, 0, width, height)
+
+    val topCrop = getStatusBarHeight()    // üstteki status/notification alanını çıkar
+    val h = (fullH - topCrop).coerceAtLeast(1)
+    val cropped = Bitmap.createBitmap(tmp, 0, topCrop, fullW, h)
+    tmp.recycle()
+    return cropped
+  }
+
+  private fun getStatusBarHeight(): Int {
+    val resId = resources.getIdentifier("status_bar_height", "dimen", "android")
+    return if (resId > 0) resources.getDimensionPixelSize(resId) else (24 * resources.displayMetrics.density).toInt()
   }
 
   private fun quickHash(bmp: Bitmap): Long {
@@ -154,11 +166,7 @@ class OverlayService : Service() {
     val stepX = (bmp.width / 32).coerceAtLeast(1)
     val stepY = (bmp.height / 32).coerceAtLeast(1)
     var y = 0
-    while (y < bmp.height) {
-      var x = 0
-      while (x < bmp.width) { sum += bmp.getPixel(x, y).toLong(); x += stepX }
-      y += stepY
-    }
+    while (y < bmp.height) { var x = 0; while (x < bmp.width) { sum += bmp.getPixel(x, y).toLong(); x += stepX }; y += stepY }
     return sum
   }
 }
