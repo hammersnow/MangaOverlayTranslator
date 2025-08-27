@@ -43,7 +43,7 @@ jobs:
       - name: Gradle build
         uses: gradle/gradle-build-action@v3
         with:
-          gradle-version: 8.7
+          gradle-version: 8.9
           arguments: >
             -Porg.gradle.jvmargs="-Xmx2g"
             assembleDebug assembleRelease bundleRelease
