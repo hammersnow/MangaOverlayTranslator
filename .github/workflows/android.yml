@@ -2,9 +2,13 @@ name: Android CI
 on:
   push:
   workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
+
     steps:
       - uses: actions/checkout@v4
 
@@ -15,20 +19,28 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          packages: |
-            platforms;android-35
-            build-tools;35.0.0
-            platform-tools
-
-      - name: Create local.properties (if needed)
+      # --- Android SDK: manuel kurulum (action yok) ---
+      - name: Install Android SDK cmdline-tools
         run: |
-          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
-          cat local.properties
+          set -e
+          mkdir -p "$ANDROID_SDK_ROOT"
+          cd "$ANDROID_SDK_ROOT"
+          curl -sSL -o cmdtools.zip https://dl.google.com/android/repository/commandlinetools-linux-12266719_latest.zip
+          unzip -q cmdtools.zip -d cmdline-tools-tmp
+          mkdir -p cmdline-tools/latest
+          mv cmdline-tools-tmp/cmdline-tools/* cmdline-tools/latest/
+          rm -rf cmdline-tools-tmp cmdtools.zip
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > $GITHUB_WORKSPACE/local.properties
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" --licenses
 
-      - name: Gradle build (no wrapper)
+      - name: Install required SDK packages
+        run: |
+          set -e
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" \
+            "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      # --- Gradle: wrapper'sız derleme ---
+      - name: Gradle build
         uses: gradle/gradle-build-action@v3
         with:
           gradle-version: 8.7
