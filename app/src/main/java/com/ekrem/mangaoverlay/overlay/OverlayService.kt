@@ -109,22 +109,23 @@ class OverlayService : Service() {
             var lastHash = 0L
             var lastText = ""
             while (isActive) {
-                val bmp = takeFrameCropped()
-                if (bmp != null) {
-                    val h = quickHash(bmp)
+                val frame = takeFrameCroppedAndMasked()  // status bar kırp + paneli maskele
+                if (frame != null) {
+                    val h = quickHash(frame)
                     if (h != lastHash) {
                         lastHash = h
                         runCatching {
-                            val tr = ocr.recognizeAndTranslate(bmp)
+                            val raw = ocr.recognizeAndTranslate(frame)
+                            val tr = cleanText(raw)
                             if (tr.isNotBlank() && !isMostlySame(tr, lastText)) {
                                 lastText = tr
                                 withContext(Dispatchers.Main) { txtOutput?.text = tr }
                             }
                         }
                     }
-                    bmp.recycle()
+                    frame.recycle()
                 }
-                delay(2000)  // 2 saniye aralık
+                delay(2000)  // 2 sn'de bir
             }
         }
     }
@@ -138,7 +139,8 @@ class OverlayService : Service() {
         projThread?.quitSafely(); projThread = null; projHandler = null
     }
 
-    private fun takeFrameCropped(): Bitmap? {
+    // --- KARE AL: üst barı kırp + panelin bulunduğu alanı siyahla maskele ---
+    private fun takeFrameCroppedAndMasked(): Bitmap? {
         val img = imageReader?.acquireLatestImage() ?: return null
         val plane = img.planes[0]
         val buffer = plane.buffer
@@ -153,8 +155,26 @@ class OverlayService : Service() {
 
         val topCrop = getStatusBarHeight()
         val h = (fullH - topCrop).coerceAtLeast(1)
-        val cropped = Bitmap.createBitmap(tmp, 0, topCrop, fullW, h)
+        var cropped = Bitmap.createBitmap(tmp, 0, topCrop, fullW, h)
         tmp.recycle()
+
+        // Panel alanını siyahla boya (OCR görmesin)
+        overlayView?.let { v ->
+            val loc = IntArray(2)
+            v.getLocationOnScreen(loc)
+            val left = loc[0].coerceAtLeast(0)
+            val top = (loc[1] - topCrop).coerceAtLeast(0)      // kırpmayı telafi et
+            val right = (left + v.width).coerceAtMost(cropped.width)
+            val bottom = (top + v.height).coerceAtMost(cropped.height)
+            if (right > left && bottom > top) {
+                val mutable = cropped.copy(Bitmap.Config.ARGB_8888, true)
+                val canvas = Canvas(mutable)
+                val paint = Paint().apply { color = Color.BLACK; alpha = 255 }
+                canvas.drawRect(Rect(left, top, right, bottom), paint)
+                cropped.recycle()
+                cropped = mutable
+            }
+        }
         return cropped
     }
 
@@ -170,6 +190,20 @@ class OverlayService : Service() {
         var y = 0
         while (y < bmp.height) { var x = 0; while (x < bmp.width) { sum += bmp.getPixel(x, y).toLong(); x += stepX }; y += stepY }
         return sum
+    }
+
+    // --- Gürültü temizleme: URL/domain ve panel metinlerini at ---
+    private fun cleanText(input: String): String {
+        val lines = input.split('\n').map { it.trim() }.filter { it.isNotEmpty() }
+        val urlRegex = Regex("""\b([a-z0-9\-]+\.)+(com|net|org|io|co|me|app|site|ru|cn|uk)\b[\S]*""", RegexOption.IGNORE_CASE)
+        val junk = setOf("canlı çeviri", "paneli sağ-alt köşeden tutup büyütebilirsiniz")
+        val filtered = lines.filter { line ->
+            val low = line.lowercase()
+            !urlRegex.containsMatchIn(line) &&
+            junk.none { low.contains(it) }
+        }
+        // Aynı satırı tekrar tekrar yazma
+        return filtered.distinct().joinToString("\n")
     }
 
     private fun isMostlySame(a: String, b: String): Boolean {
