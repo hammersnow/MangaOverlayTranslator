@@ -6,7 +6,7 @@
     android:layout_width="280dp"
     android:layout_height="240dp">
 
-    <!-- Üst çubuk: sadece kapat butonu, sağda -->
+    <!-- Üst çubuk: sadece küçültülmüş kapat butonu -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -17,14 +17,14 @@
             android:layout_weight="1"/>
         <ImageButton
             android:id="@+id/btnClose"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="12dp"
+            android:layout_height="12dp"
             android:background="@android:color/transparent"
             android:src="@android:drawable/ic_menu_close_clear_cancel"
             android:tint="#FFFFFF"/>
     </LinearLayout>
 
-    <!-- Çeviri metni (kaydırılabilir) -->
+    <!-- Çeviri metni -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
