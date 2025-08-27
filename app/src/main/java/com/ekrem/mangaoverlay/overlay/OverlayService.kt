@@ -8,6 +8,8 @@ class OverlayService : Service() {
     private lateinit var windowManager: WindowManager
     private var overlayView: View? = null
     private var txtOutput: TextView? = null
+    private var titleView: TextView? = null
+    private var hintView: TextView? = null
 
     private var projection: MediaProjection? = null
     private var imageReader: ImageReader? = null
@@ -18,6 +20,8 @@ class OverlayService : Service() {
     private val projCallback = object : MediaProjection.Callback() { override fun onStop() { releaseCapture() } }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val prefs by lazy { getSharedPreferences("settings", MODE_PRIVATE) }
+
     override fun onBind(intent: Intent?) = null
 
     override fun onCreate() {
@@ -71,9 +75,21 @@ class OverlayService : Service() {
             resources.getIdentifier("overlay_panel", "layout", packageName),
             null
         )
-        txtOutput = overlayView!!.findViewById(
-            resources.getIdentifier("txtOutput", "id", packageName)
-        )
+        titleView = overlayView!!.findViewById(resources.getIdentifier("txtTitle","id",packageName))
+        txtOutput = overlayView!!.findViewById(resources.getIdentifier("txtOutput","id",packageName))
+        hintView  = overlayView!!.findViewById(resources.getIdentifier("txtHint","id",packageName))
+
+        // ---- Ayarları uygula ----
+        val baseColor = prefs.getInt("panel_color", 0xFF1E1E1E.toInt())
+        val opacityPct = prefs.getInt("panel_opacity", 80).coerceIn(40,100)
+        val alpha = (opacityPct * 255 / 100).coerceIn(0,255)
+        val bgColor = (alpha shl 24) or (baseColor and 0x00FFFFFF)
+        overlayView!!.setBackgroundColor(bgColor)
+
+        val textColor = prefs.getInt("text_color", 0xFFFFFFFF.toInt())
+        titleView?.setTextColor(textColor); txtOutput?.setTextColor(textColor)
+        hintView?.setTextColor((0xB3 shl 24) or (textColor and 0x00FFFFFF))
+
         val helper = DraggableResizableTouchHelper(windowManager, overlayView!!, lp)
         overlayView!!.setOnTouchListener(helper)
         overlayView!!.findViewById<ImageButton>(
@@ -109,7 +125,7 @@ class OverlayService : Service() {
             var lastHash = 0L
             var lastText = ""
             while (isActive) {
-                val frame = takeFrameCroppedAndMasked()  // status bar kırp + paneli maskele
+                val frame = takeFrameCroppedAndMasked()
                 if (frame != null) {
                     val h = quickHash(frame)
                     if (h != lastHash) {
@@ -125,7 +141,8 @@ class OverlayService : Service() {
                     }
                     frame.recycle()
                 }
-                delay(2000)  // 2 sn'de bir
+                val interval = prefs.getInt("interval_ms", 2000).coerceIn(1000, 5000)
+                delay(interval.toLong())
             }
         }
     }
@@ -139,7 +156,7 @@ class OverlayService : Service() {
         projThread?.quitSafely(); projThread = null; projHandler = null
     }
 
-    // --- KARE AL: üst barı kırp + panelin bulunduğu alanı siyahla maskele ---
+    // --- Frame: üst barı kırp + paneli maskeler ---
     private fun takeFrameCroppedAndMasked(): Bitmap? {
         val img = imageReader?.acquireLatestImage() ?: return null
         val plane = img.planes[0]
@@ -158,21 +175,18 @@ class OverlayService : Service() {
         var cropped = Bitmap.createBitmap(tmp, 0, topCrop, fullW, h)
         tmp.recycle()
 
-        // Panel alanını siyahla boya (OCR görmesin)
         overlayView?.let { v ->
-            val loc = IntArray(2)
-            v.getLocationOnScreen(loc)
+            val loc = IntArray(2); v.getLocationOnScreen(loc)
             val left = loc[0].coerceAtLeast(0)
-            val top = (loc[1] - topCrop).coerceAtLeast(0)      // kırpmayı telafi et
+            val top = (loc[1] - topCrop).coerceAtLeast(0)
             val right = (left + v.width).coerceAtMost(cropped.width)
             val bottom = (top + v.height).coerceAtMost(cropped.height)
             if (right > left && bottom > top) {
                 val mutable = cropped.copy(Bitmap.Config.ARGB_8888, true)
-                val canvas = Canvas(mutable)
-                val paint = Paint().apply { color = Color.BLACK; alpha = 255 }
-                canvas.drawRect(Rect(left, top, right, bottom), paint)
-                cropped.recycle()
-                cropped = mutable
+                val c = Canvas(mutable)
+                val p = Paint().apply { color = Color.BLACK; alpha = 255 }
+                c.drawRect(Rect(left, top, right, bottom), p)
+                cropped.recycle(); cropped = mutable
             }
         }
         return cropped
@@ -192,24 +206,20 @@ class OverlayService : Service() {
         return sum
     }
 
-    // --- Gürültü temizleme: URL/domain ve panel metinlerini at ---
     private fun cleanText(input: String): String {
         val lines = input.split('\n').map { it.trim() }.filter { it.isNotEmpty() }
         val urlRegex = Regex("""\b([a-z0-9\-]+\.)+(com|net|org|io|co|me|app|site|ru|cn|uk)\b[\S]*""", RegexOption.IGNORE_CASE)
         val junk = setOf("canlı çeviri", "paneli sağ-alt köşeden tutup büyütebilirsiniz")
         val filtered = lines.filter { line ->
             val low = line.lowercase()
-            !urlRegex.containsMatchIn(line) &&
-            junk.none { low.contains(it) }
+            !urlRegex.containsMatchIn(line) && junk.none { low.contains(it) }
         }
-        // Aynı satırı tekrar tekrar yazma
         return filtered.distinct().joinToString("\n")
     }
 
     private fun isMostlySame(a: String, b: String): Boolean {
         if (a == b) return true
-        val minLen = minOf(a.length, b.length)
-        if (minLen == 0) return false
+        val minLen = minOf(a.length, b.length); if (minLen == 0) return false
         val same = a.commonPrefixWith(b).length
         return (same.toDouble() / minLen) > 0.8
     }

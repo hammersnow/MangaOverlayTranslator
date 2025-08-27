@@ -6,13 +6,15 @@
 
   <LinearLayout
     android:orientation="vertical"
+    android:gravity="center_horizontal"
     android:paddingLeft="16dp"
     android:paddingRight="16dp"
-    android:paddingTop="56dp"
+    android:paddingTop="96dp"
     android:paddingBottom="24dp"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
+    <!-- Butonlar -->
     <Button
       android:id="@+id/btnStart"
       android:layout_width="match_parent"
@@ -34,5 +36,70 @@
       android:text="Durum: Kapalı"
       android:textColor="#EEEEEE"
       android:layout_marginTop="16dp"/>
+
+    <!-- Ayarlar -->
+    <TextView
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="Ayarlar"
+      android:textStyle="bold"
+      android:textColor="#FFFFFF"
+      android:textSize="18sp"
+      android:layout_marginTop="32dp"/>
+
+    <!-- Çeviri aralığı -->
+    <TextView
+      android:id="@+id/lblInterval"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="Çeviri aralığı: 2 sn"
+      android:textColor="#FFFFFF"
+      android:layout_marginTop="12dp"/>
+    <SeekBar
+      android:id="@+id/seekInterval"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:max="4"   <!-- 0..4 => 1..5 sn -->
+      android:progress="1"/>
+
+    <!-- Opaklık -->
+    <TextView
+      android:id="@+id/lblOpacity"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="Panel opaklığı: %80"
+      android:textColor="#FFFFFF"
+      android:layout_marginTop="16dp"/>
+    <SeekBar
+      android:id="@+id/seekOpacity"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:max="60"   <!-- 40..100 -->
+      android:progress="40"/>
+
+    <!-- Panel rengi -->
+    <TextView
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="Panel rengi"
+      android:textColor="#FFFFFF"
+      android:layout_marginTop="16dp"/>
+    <Spinner
+      android:id="@+id/spPanelColor"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"/>
+
+    <!-- Yazı rengi -->
+    <TextView
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="Yazı rengi"
+      android:textColor="#FFFFFF"
+      android:layout_marginTop="16dp"/>
+    <Spinner
+      android:id="@+id/spTextColor"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"/>
+
   </LinearLayout>
 </ScrollView>
