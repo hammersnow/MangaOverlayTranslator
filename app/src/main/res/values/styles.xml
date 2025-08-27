@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <style name="Theme.Material3.DayNight.NoActionBar" parent="Theme.Material3.DayNight.NoActionBar"/>
+  <!-- İsim aynı kalsın; sadece parent güvenli: MaterialComponents -->
+  <style name="Theme.Material3.DayNight.NoActionBar" parent="Theme.MaterialComponents.DayNight.NoActionBar"/>
 </resources>

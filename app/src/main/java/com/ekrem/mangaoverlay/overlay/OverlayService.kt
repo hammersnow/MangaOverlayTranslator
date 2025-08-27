@@ -23,8 +23,8 @@ class OverlayService : Service() {
       nm.createNotificationChannel(ch)
     }
     val notif: Notification = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-      Notification.Builder(this, channelId).setContentTitle("Çeviri servisi çalışıyor").setSmallIcon(R.drawable.ic_launcher_foreground).build()
-    else Notification.Builder(this).setContentTitle("Çeviri servisi çalışıyor").setSmallIcon(R.drawable.ic_launcher_foreground).build()
+      Notification.Builder(this, channelId).setContentTitle("Çeviri servisi çalışıyor").setSmallIcon(android.R.drawable.ic_menu_info_details).build()
+    else Notification.Builder(this).setContentTitle("Çeviri servisi çalışıyor").setSmallIcon(android.R.drawable.ic_menu_info_details).build()
     startForeground(1, notif)
   }
   private fun showOverlay() {
