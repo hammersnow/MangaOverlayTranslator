@@ -37,7 +37,7 @@
       android:textColor="#EEEEEE"
       android:layout_marginTop="16dp"/>
 
-    <!-- Ayarlar -->
+    <!-- Ayarlar başlığı -->
     <TextView
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
@@ -47,7 +47,7 @@
       android:textSize="18sp"
       android:layout_marginTop="32dp"/>
 
-    <!-- Çeviri aralığı -->
+    <!-- Çeviri aralığı (1..5 sn) -->
     <TextView
       android:id="@+id/lblInterval"
       android:layout_width="match_parent"
@@ -59,10 +59,10 @@
       android:id="@+id/seekInterval"
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
-      android:max="4"   <!-- 0..4 => 1..5 sn -->
+      android:max="4"
       android:progress="1"/>
 
-    <!-- Opaklık -->
+    <!-- Opaklık (%40..%100) -->
     <TextView
       android:id="@+id/lblOpacity"
       android:layout_width="match_parent"
@@ -74,7 +74,7 @@
       android:id="@+id/seekOpacity"
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
-      android:max="60"   <!-- 40..100 -->
+      android:max="60"
       android:progress="40"/>
 
     <!-- Panel rengi -->
