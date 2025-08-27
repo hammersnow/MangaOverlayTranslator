@@ -6,53 +6,37 @@
     android:layout_width="280dp"
     android:layout_height="240dp">
 
+    <!-- Üst çubuk: sadece kapat butonu, sağda -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
-
-        <TextView
-            android:id="@+id/txtTitle"
+        <View
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Canlı Çeviri"
-            android:textStyle="bold"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp" />
-
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
         <ImageButton
             android:id="@+id/btnClose"
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:background="@android:color/transparent"
             android:src="@android:drawable/ic_menu_close_clear_cancel"
-            android:tint="#FFFFFF" />
+            android:tint="#FFFFFF"/>
     </LinearLayout>
 
-    <!-- Uzun metinler için kaydırılabilir alan -->
+    <!-- Çeviri metni (kaydırılabilir) -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:fadeScrollbars="false">
-
         <TextView
             android:id="@+id/txtOutput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Burada çeviri görünecek"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
             android:lineSpacingExtra="2dp"
-            android:paddingTop="6dp" />
+            android:paddingTop="6dp"/>
     </ScrollView>
-
-    <TextView
-        android:id="@+id/txtHint"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Paneli sağ-alt köşeden tutup büyütebilirsiniz"
-        android:textColor="#B3FFFFFF"
-        android:textSize="12sp" />
 </LinearLayout>

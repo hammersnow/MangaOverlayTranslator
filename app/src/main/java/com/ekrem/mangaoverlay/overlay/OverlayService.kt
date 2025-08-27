@@ -8,8 +8,6 @@ class OverlayService : Service() {
     private lateinit var windowManager: WindowManager
     private var overlayView: View? = null
     private var txtOutput: TextView? = null
-    private var titleView: TextView? = null
-    private var hintView: TextView? = null
 
     private var projection: MediaProjection? = null
     private var imageReader: ImageReader? = null
@@ -75,20 +73,16 @@ class OverlayService : Service() {
             resources.getIdentifier("overlay_panel", "layout", packageName),
             null
         )
-        titleView = overlayView!!.findViewById(resources.getIdentifier("txtTitle","id",packageName))
         txtOutput = overlayView!!.findViewById(resources.getIdentifier("txtOutput","id",packageName))
-        hintView  = overlayView!!.findViewById(resources.getIdentifier("txtHint","id",packageName))
 
-        // ---- Ayarları uygula ----
+        // Ayarları uygula (renk/opacity)
         val baseColor = prefs.getInt("panel_color", 0xFF1E1E1E.toInt())
         val opacityPct = prefs.getInt("panel_opacity", 80).coerceIn(40,100)
         val alpha = (opacityPct * 255 / 100).coerceIn(0,255)
         val bgColor = (alpha shl 24) or (baseColor and 0x00FFFFFF)
         overlayView!!.setBackgroundColor(bgColor)
-
         val textColor = prefs.getInt("text_color", 0xFFFFFFFF.toInt())
-        titleView?.setTextColor(textColor); txtOutput?.setTextColor(textColor)
-        hintView?.setTextColor((0xB3 shl 24) or (textColor and 0x00FFFFFF))
+        txtOutput?.setTextColor(textColor)
 
         val helper = DraggableResizableTouchHelper(windowManager, overlayView!!, lp)
         overlayView!!.setOnTouchListener(helper)
@@ -156,7 +150,7 @@ class OverlayService : Service() {
         projThread?.quitSafely(); projThread = null; projHandler = null
     }
 
-    // --- Frame: üst barı kırp + paneli maskeler ---
+    // Üst barı kırp + paneli maskele
     private fun takeFrameCroppedAndMasked(): Bitmap? {
         val img = imageReader?.acquireLatestImage() ?: return null
         val plane = img.planes[0]
@@ -206,14 +200,11 @@ class OverlayService : Service() {
         return sum
     }
 
+    // URL vb. gürültüyü at
     private fun cleanText(input: String): String {
         val lines = input.split('\n').map { it.trim() }.filter { it.isNotEmpty() }
         val urlRegex = Regex("""\b([a-z0-9\-]+\.)+(com|net|org|io|co|me|app|site|ru|cn|uk)\b[\S]*""", RegexOption.IGNORE_CASE)
-        val junk = setOf("canlı çeviri", "paneli sağ-alt köşeden tutup büyütebilirsiniz")
-        val filtered = lines.filter { line ->
-            val low = line.lowercase()
-            !urlRegex.containsMatchIn(line) && junk.none { low.contains(it) }
-        }
+        val filtered = lines.filter { line -> !urlRegex.containsMatchIn(line) }
         return filtered.distinct().joinToString("\n")
     }
 
