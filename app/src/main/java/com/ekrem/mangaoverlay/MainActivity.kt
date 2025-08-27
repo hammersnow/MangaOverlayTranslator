@@ -25,6 +25,8 @@ class MainActivity : AppCompatActivity() {
   private lateinit var seekOpacity: SeekBar
   private lateinit var spPanelColor: Spinner
   private lateinit var spTextColor: Spinner
+  private lateinit var lblFontSize: TextView
+  private lateinit var seekFontSize: SeekBar
 
   private val overlayPermissionLauncher =
     registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { /* no-op */ }
@@ -58,6 +60,8 @@ class MainActivity : AppCompatActivity() {
     seekOpacity = findViewById(R.id.seekOpacity)
     spPanelColor = findViewById(R.id.spPanelColor)
     spTextColor = findViewById(R.id.spTextColor)
+    lblFontSize = findViewById(R.id.lblFontSize)
+    seekFontSize = findViewById(R.id.seekFontSize)
 
     // Başlat/Durdur
     btnStart.setOnClickListener { ensureOverlayPermission { requestScreenCapture() } }
@@ -119,6 +123,22 @@ class MainActivity : AppCompatActivity() {
     val curText = prefs.getInt("text_color", textValues[0])
     val curTextIdx = textValues.indexOf(curText).let { if (it >= 0) it else 0 }
     spTextColor.setSelection(curTextIdx, false)
+    
+    // Yazı boyutu (12sp..32sp arası)
+    val curSize = prefs.getInt("font_size", 16)
+    val initProg = (curSize - 12).coerceIn(0,20)
+    seekFontSize.max = 20
+    seekFontSize.progress = initProg
+    lblFontSize.text = "Yazı boyutu: ${curSize}sp"
+    seekFontSize.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{
+      override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) {
+        val size = p + 12
+        lblFontSize.text = "Yazı boyutu: ${size}sp"
+        prefs.edit().putInt("font_size", size).apply()
+      }
+      override fun onStartTrackingTouch(sb: SeekBar?) {}
+      override fun onStopTrackingTouch(sb: SeekBar?) {}
+    })
     spTextColor.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
       override fun onItemSelected(parent: AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
         prefs.edit().putInt("text_color", textValues[position]).apply()

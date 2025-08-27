@@ -83,6 +83,8 @@ class OverlayService : Service() {
         overlayView!!.setBackgroundColor(bgColor)
         val textColor = prefs.getInt("text_color", 0xFFFFFFFF.toInt())
         txtOutput?.setTextColor(textColor)
+        val fontSize = prefs.getInt("font_size", 16)
+        txtOutput?.textSize = fontSize.toFloat()
 
         val helper = DraggableResizableTouchHelper(windowManager, overlayView!!, lp)
         overlayView!!.setOnTouchListener(helper)
