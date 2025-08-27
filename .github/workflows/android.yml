@@ -7,6 +7,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: 'gradle'
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
@@ -14,17 +22,26 @@ jobs:
             platforms;android-35
             build-tools;35.0.0
             platform-tools
-      - name: Gradle Build (wrapper yok)
+
+      - name: Create local.properties (if needed)
+        run: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+          cat local.properties
+
+      - name: Gradle build (no wrapper)
         uses: gradle/gradle-build-action@v3
         with:
-          gradle-version: 8.14.3
+          gradle-version: 8.7
           arguments: >
+            -Porg.gradle.jvmargs="-Xmx2g"
             assembleDebug assembleRelease bundleRelease
+
       - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
           name: apks
           path: app/build/outputs/apk/**/*.apk
+
       - name: Upload AAB
         uses: actions/upload-artifact@v4
         with:

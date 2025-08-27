@@ -1,6 +1,6 @@
 plugins {
-  id("com.android.application") version "8.12.1"
-  id("org.jetbrains.kotlin.android") version "2.2.10"
+  id("com.android.application") version "8.7.2"
+  id("org.jetbrains.kotlin.android") version "2.0.21"
 }
 android {
   namespace = "com.ekrem.mangaoverlay"
@@ -20,7 +20,10 @@ android {
     debug { isDebuggable = true }
   }
   buildFeatures { viewBinding = true }
-  compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
+  compileOptions {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+  }
   kotlinOptions { jvmTarget = "17" }
 }
 dependencies {
@@ -30,6 +33,6 @@ dependencies {
   implementation("androidx.constraintlayout:constraintlayout:2.1.4")
   implementation("com.google.mlkit:text-recognition:16.0.1")
   implementation("com.google.mlkit:translate:17.0.3")
-  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
-  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
 }
