@@ -8,6 +8,7 @@ import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import com.ekrem.mangaoverlay.databinding.ActivityMainBinding
 import com.ekrem.mangaoverlay.overlay.OverlayService
 
@@ -15,7 +16,7 @@ class MainActivity : AppCompatActivity() {
   private lateinit var binding: ActivityMainBinding
 
   private val overlayPermissionLauncher =
-    registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { /* kullanıcı geri dönünce yeniden Start'a basacak */ }
+    registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { }
 
   private val screenCaptureLauncher =
     registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -37,6 +38,10 @@ class MainActivity : AppCompatActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+
+    // Her zaman koyu mod
+    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+
     binding = ActivityMainBinding.inflate(layoutInflater)
     setContentView(binding.root)
 
@@ -51,7 +56,6 @@ class MainActivity : AppCompatActivity() {
     if (Settings.canDrawOverlays(this)) onGranted() else {
       val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))
       overlayPermissionLauncher.launch(intent)
-      // kullanıcı izin verip geri gelince Start'a tekrar basacak
     }
   }
 
